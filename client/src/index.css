@@ -1,0 +1,176 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased;
+  }
+  
+  * {
+    @apply border-gray-200;
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-100;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
+  }
+  
+  /* Focus styles */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-qassim-blue ring-offset-2;
+  }
+}
+
+@layer components {
+  /* Button Components */
+  .btn-primary {
+    @apply bg-qassim-blue hover:bg-qassim-blue-dark text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 shadow-soft hover:shadow-soft-lg active:scale-95;
+  }
+  
+  .btn-secondary {
+    @apply bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-3 px-6 rounded-xl transition-all duration-200 shadow-soft hover:shadow-soft-lg active:scale-95;
+  }
+  
+  .btn-danger {
+    @apply bg-red-500 hover:bg-red-600 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 shadow-soft hover:shadow-soft-lg active:scale-95;
+  }
+  
+  .btn-gold {
+    @apply bg-qassim-gold hover:bg-qassim-gold-dark text-qassim-blue font-medium py-3 px-6 rounded-xl transition-all duration-200 shadow-soft hover:shadow-soft-lg active:scale-95;
+  }
+  
+  .btn-outline {
+    @apply border-2 border-qassim-blue text-qassim-blue hover:bg-qassim-blue hover:text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 shadow-soft hover:shadow-soft-lg active:scale-95;
+  }
+  
+  .btn-ghost {
+    @apply text-qassim-blue hover:bg-qassim-blue/10 font-medium py-3 px-6 rounded-xl transition-all duration-200;
+  }
+  
+  /* Input Components */
+  .input-field {
+    @apply w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-qassim-blue focus:border-transparent transition-all duration-200 bg-white shadow-soft;
+  }
+  
+  .input-field:focus {
+    @apply shadow-soft-lg;
+  }
+  
+  /* Card Components */
+  .card {
+    @apply bg-white rounded-2xl shadow-soft border border-gray-100 transition-all duration-200 hover:shadow-soft-lg;
+  }
+  
+  .card-hover {
+    @apply card hover:scale-105 cursor-pointer;
+  }
+  
+  /* Glass Effects */
+  .header-gradient {
+    @apply bg-gradient-to-r from-qassim-blue/90 to-qassim-blue-dark/90 backdrop-blur-md border-b border-white/20 shadow-soft;
+  }
+  
+  .glass-effect {
+    @apply bg-white/10 backdrop-blur-md border border-white/20 shadow-soft-lg;
+  }
+  
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-sm border border-white/30 shadow-soft-lg;
+  }
+  
+  /* Typography */
+  .text-qassim-blue {
+    color: #002944;
+  }
+  
+  .text-qassim-gold {
+    color: #fbbf24;
+  }
+  
+  .heading-1 {
+    @apply text-4xl font-bold text-gray-900 leading-tight;
+  }
+  
+  .heading-2 {
+    @apply text-3xl font-bold text-gray-900 leading-tight;
+  }
+  
+  .heading-3 {
+    @apply text-2xl font-semibold text-gray-900 leading-tight;
+  }
+  
+  .heading-4 {
+    @apply text-xl font-semibold text-gray-900 leading-tight;
+  }
+  
+  .body-large {
+    @apply text-lg text-gray-700 leading-relaxed;
+  }
+  
+  .body-medium {
+    @apply text-base text-gray-700 leading-relaxed;
+  }
+  
+  .body-small {
+    @apply text-sm text-gray-600 leading-relaxed;
+  }
+  
+  /* Layout Components */
+  .container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  
+  .section {
+    @apply py-12 lg:py-16;
+  }
+  
+  /* Animation Classes */
+  .animate-fade-in {
+    @apply animate-fade-in;
+  }
+  
+  .animate-slide-up {
+    @apply animate-slide-in-up;
+  }
+  
+  .animate-scale-in {
+    @apply animate-scale-in;
+  }
+  
+  .animate-bounce-in {
+    @apply animate-bounce-in;
+  }
+  
+  /* Dark Mode Classes */
+  .dark .card {
+    @apply bg-gray-800 border-gray-700;
+  }
+  
+  .dark .input-field {
+    @apply bg-gray-800 border-gray-600 text-white;
+  }
+  
+  .dark body {
+    @apply bg-gray-900 text-gray-100;
+  }
+}
