@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Navigate, useLocation } from 'react-router-dom'
-import { Lock, User, Eye, EyeOff } from 'lucide-react'
+import { Lock, User, Eye, EyeOff, ChevronDown, ChevronUp } from 'lucide-react'
 import { loginUser, clearError } from '../store/slices/authSlice'
 // import {Logo }from '../puplic/logo.png'
 
@@ -15,6 +15,18 @@ const LoginPage = () => {
     password: ''
   })
   const [showPassword, setShowPassword] = useState(false)
+  const [showDemo, setShowDemo] = useState(false)
+
+  const demoAccounts = [
+    { role: 'Admin', email: 'admin@company.com', password: 'Admin@123', dot: 'bg-red-500' },
+    { role: 'HR', email: 'ahmed.rashid@company.com', password: 'Pass@123', dot: 'bg-purple-500' },
+    { role: 'Manager', email: 'mohammed.sheikh@company.com', password: 'Pass@123', dot: 'bg-blue-500' },
+    { role: 'Employee', email: 'emily.chen@company.com', password: 'Pass@123', dot: 'bg-green-500' },
+  ]
+
+  const fillCredentials = (email, password) => {
+    setFormData({ email, password })
+  }
 
   const from = location.state?.from?.pathname || '/'
 
@@ -156,12 +168,33 @@ const LoginPage = () => {
           </div>
         </div>
 
-        {/* Contact Admin */}
-        <div className="text-center mt-6">
-          <p className="text-sm text-gray-600">
-            <strong>Admin-Only Account Creation:</strong> New employee accounts can only be created by system administrators. 
-            Please contact your HR department or system administrator to request access to the Qassim Chamber employee directory.
-          </p>
+        {/* Demo Credentials */}
+        <div className="mt-4 max-w-md mx-auto">
+          <button
+            onClick={() => setShowDemo(!showDemo)}
+            className="w-full flex items-center justify-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors py-1"
+          >
+            {showDemo ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            Demo Credentials
+          </button>
+          {showDemo && (
+            <div className="mt-1 bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-1.5">
+              {demoAccounts.map((acc) => (
+                <button
+                  key={acc.role}
+                  onClick={() => fillCredentials(acc.email, acc.password)}
+                  className="w-full flex items-center justify-between text-left px-2.5 py-1.5 rounded-md hover:bg-white hover:shadow-sm transition-all text-xs group"
+                >
+                  <span className="flex items-center gap-2">
+                    <span className={`inline-block w-1.5 h-1.5 rounded-full ${acc.dot}`} />
+                    <span className="font-medium text-gray-700">{acc.role}</span>
+                  </span>
+                  <span className="text-gray-400 group-hover:text-gray-600">{acc.email}</span>
+                </button>
+              ))}
+              <p className="text-[10px] text-gray-400 text-center pt-1">Click to auto-fill credentials</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

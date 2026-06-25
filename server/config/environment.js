@@ -1,3 +1,6 @@
+const dns = require('dns');
+dns.setServers(['8.8.8.8', '8.8.4.4']);
+
 const dotenv = require('dotenv');
 const path = require('path');
 
@@ -8,15 +11,20 @@ const envFile = process.env.NODE_ENV === 'production'
     ? '.env.test' 
     : '.env.development';
 
-dotenv.config({ path: path.resolve(process.cwd(), 'config.env') });
+if (!process.env.VERCEL) {
+  dotenv.config({ path: path.resolve(process.cwd(), 'config.env') });
+}
 
 // Environment validation
 const requiredEnvVars = [
   'MONGODB_URI',
   'JWT_SECRET',
   'JWT_EXPIRE',
-  'PORT'
 ];
+
+if (!process.env.VERCEL) {
+  requiredEnvVars.push('PORT');
+}
 
 const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
 
@@ -101,9 +109,11 @@ const config = {
   
   // CORS configuration
   cors: {
-    origin: process.env.CORS_ORIGIN?.split(',') || (process.env.NODE_ENV === 'production' 
-      ? ['https://yourdomain.com'] 
-      : ['http://localhost:3000', 'http://localhost:5173']),
+    origin: process.env.CORS_ORIGIN?.split(',') || (process.env.VERCEL
+      ? true
+      : process.env.NODE_ENV === 'production'
+        ? ['https://yourdomain.com']
+        : ['http://localhost:3000', 'http://localhost:5173']),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
@@ -131,8 +141,8 @@ const validateConfig = () => {
     errors.push('JWT secret must be at least 32 characters long');
   }
   
-  // Validate email configuration in production
-  if (config.nodeEnv === 'production') {
+  // Validate email configuration in production (skip on Vercel demo)
+  if (config.nodeEnv === 'production' && !process.env.VERCEL) {
     if (!config.email.host || !config.email.user || !config.email.password) {
       errors.push('Email configuration is required in production');
     }

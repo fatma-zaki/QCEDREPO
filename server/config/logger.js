@@ -46,9 +46,9 @@ const consoleFormat = winston.format.combine(
   })
 );
 
-// Create logs directory if it doesn't exist
 const fs = require('fs');
-const logsDir = path.dirname(config.logging.logFile);
+const isServerless = !!process.env.VERCEL;
+const logsDir = isServerless ? '/tmp/logs' : path.dirname(config.logging.logFile);
 if (!fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true });
 }
