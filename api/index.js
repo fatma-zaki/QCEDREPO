@@ -3,8 +3,14 @@ dns.setServers(['8.8.8.8', '8.8.4.4']);
 
 const path = require('path');
 
+const serverDir = path.resolve(__dirname, '..', 'server');
+
 // Set CWD to server/ so relative paths in the server code resolve correctly
-process.chdir(path.resolve(__dirname, '..', 'server'));
+process.chdir(serverDir);
+
+// Add server/node_modules to module search paths so packages installed
+// there are resolvable from this file (Vercel installs deps in server/).
+module.paths.unshift(path.join(serverDir, 'node_modules'));
 
 const config = require('../server/config/environment');
 const databaseManager = require('../server/config/database');
