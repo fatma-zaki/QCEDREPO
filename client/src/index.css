@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -67,6 +67,27 @@
     @apply text-qassim-blue hover:bg-qassim-blue/10 font-medium py-3 px-6 rounded-xl transition-all duration-200;
   }
   
+  /* Redesign primitives (navy system) */
+  .btn-navy {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-navy-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-navy-700 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-soft {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-navy-100 bg-white px-4 py-2.5 text-sm font-medium text-navy-800 transition-colors hover:bg-navy-50 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .field {
+    @apply w-full rounded-xl border border-navy-100 bg-white px-3.5 py-2.5 text-sm text-navy-800 placeholder:text-navy-500/70 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100;
+  }
+
+  .surface {
+    @apply rounded-2xl border border-navy-100 bg-white shadow-[0_1px_2px_rgba(16,24,64,0.04)];
+  }
+
+  .icon-btn {
+    @apply rounded-lg p-1.5 text-navy-500 transition-colors hover:bg-navy-50 hover:text-navy-800 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent;
+  }
+
   /* Input Components */
   .input-field {
     @apply w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-qassim-blue focus:border-transparent transition-all duration-200 bg-white shadow-soft;

@@ -160,26 +160,6 @@ const MessageInput = ({ onSend, disabled }) => {
   )
 }
 
-const Sidebar = ({ user }) => {
-  return (
-    <div className="hidden md:flex md:w-64 bg-gradient-to-b from-qassim-blue to-qassim-blue-dark text-white flex-col">
-      <div className="p-6 flex items-center space-x-3">
-        <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center text-lg font-semibold">
-          {String(user?.username || user?.name || 'U').slice(0,1)}
-        </div>
-        <div>
-          <div className="text-sm font-semibold">{user?.username || user?.name}</div>
-          <div className="text-xs text-white/80 capitalize">{user?.role}</div>
-        </div>
-      </div>
-      <nav className="px-4 py-2 space-y-1 text-sm">
-        <a href="/" className="block px-3 py-2 rounded hover:bg-white/10">Home</a>
-        <a href="/chat" className="block px-3 py-2 rounded bg-white/20">Messages</a>
-      </nav>
-    </div>
-  )
-}
-
 const ChatPage = () => {
   const dispatch = useDispatch()
   const { user, token } = useSelector((s) => s.auth)
@@ -330,7 +310,6 @@ const ChatPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 flex">
-      <Sidebar user={user} />
       <div className="flex-1 flex">
         <ConversationsList
           conversations={conversations}

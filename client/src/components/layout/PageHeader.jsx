@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 
 const PageHeader = ({ 
@@ -5,7 +6,7 @@ const PageHeader = ({
   subtitle, 
   backUrl = '/admin',
   actions = [],
-  showLogo = true 
+  showLogo = false 
 }) => {
   return (
     <header className="header-gradient shadow-lg relative">
@@ -13,9 +14,9 @@ const PageHeader = ({
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center">
             {backUrl && (
-              <a href={backUrl} className="mr-4">
+              <Link to={backUrl} className="mr-4">
                 <ArrowLeft className="h-6 w-6 text-white hover:text-qassim-gold" />
-              </a>
+              </Link>
             )}
             {showLogo && (
               <div className="mr-4">

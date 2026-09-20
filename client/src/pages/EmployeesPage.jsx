@@ -1,18 +1,144 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { Users, Edit, Trash2, Eye, Download } from 'lucide-react'
-import { fetchEmployees, deleteEmployee, setSearchTerm, setFilterDepartment, setSortBy, setSortOrder, exportEmployees } from '../store/slices/employeeSlice'
+import {
+  Users,
+  Building2,
+  UserCheck,
+  UserPlus,
+  Search,
+  SlidersHorizontal,
+  FileSpreadsheet,
+  Download,
+  Eye,
+  Pencil,
+  Trash2,
+  Phone,
+  Mail,
+  ChevronDown,
+  X,
+} from 'lucide-react'
+import {
+  fetchEmployees,
+  deleteEmployee,
+  setSearchTerm,
+  setFilterDepartment,
+  setSortBy,
+  setSortOrder,
+} from '../store/slices/employeeSlice'
 import { fetchDepartments } from '../store/slices/departmentSlice'
-import AdvancedSearch from '../components/AdvancedSearch'
-import AvatarUpload from '../components/AvatarUpload'
-import QRCodeGenerator from '../components/QRCodeGenerator'
 import BulkOperations from '../components/BulkOperations'
-import { EmployeeForm, ActionButton, PageHeader, QassimLoadingSpinner, EmptyState } from '../components'
+import { EmployeeForm, QassimLoadingSpinner } from '../components'
+import PageHero from '../components/layout/PageHero'
+import StatCard from '../components/dashboard/StatCard'
+import QuickActionList from '../components/dashboard/QuickActionList'
+import StarBurst from '../components/dashboard/StarBurst'
+import EmployeeAvatar, { StatusBadge, RoleBadge, getEmployeeName, getStatusKey } from '../components/dashboard/EmployeeAvatar'
+import EmployeeDetailsModal from '../components/employees/EmployeeDetailsModal'
+import {
+  getJoinDate,
+  getCreatedDate,
+  countBefore,
+  monthlySeries,
+  seriesChange,
+  startOfMonth,
+} from '../components/dashboard/dashboardUtils'
 import { useNotifications } from '../hooks/useNotifications'
+import { useEmployeeExport } from '../hooks/useEmployeeExport'
+
+const SORT_OPTIONS = [
+  { value: 'createdAt:desc', label: 'Recently Added' },
+  { value: 'name:asc', label: 'Name (A–Z)' },
+  { value: 'name:desc', label: 'Name (Z–A)' },
+  { value: 'department:asc', label: 'Department' },
+  { value: 'extension:asc', label: 'Extension' },
+  { value: 'email:asc', label: 'Email' },
+]
+
+const sortValue = (employee, key) => {
+  switch (key) {
+    case 'extension':
+      return parseInt(employee.extension) || 0
+    case 'department':
+      return (employee.department?.name || '').toLowerCase()
+    case 'email':
+      return (employee.email || '').toLowerCase()
+    case 'createdAt':
+      return new Date(employee.createdAt || employee.updatedAt || 0).getTime()
+    default:
+      return getEmployeeName(employee).toLowerCase()
+  }
+}
+
+const EmployeeCard = ({ employee, selected, onToggle, onView, onEdit, onDelete, canEdit, canDelete }) => (
+  <article
+    className={`group relative flex flex-col rounded-2xl border bg-white p-4 transition-all hover:-translate-y-0.5 hover:shadow-lg ${
+      selected ? 'border-indigo-300 ring-2 ring-indigo-100' : 'border-navy-100'
+    }`}
+  >
+    <div className="flex items-center justify-between">
+      <input
+        type="checkbox"
+        checked={selected}
+        onChange={onToggle}
+        aria-label={`Select ${getEmployeeName(employee)}`}
+        className="h-4 w-4 rounded border-navy-200 text-indigo-600 focus:ring-indigo-500"
+      />
+      <StatusBadge employee={employee} />
+    </div>
+
+    <div className="mt-3 flex items-start gap-3">
+      <EmployeeAvatar employee={employee} size="lg" />
+      <div className="min-w-0 flex-1">
+        <h3 className="truncate text-sm font-semibold text-navy-800">{getEmployeeName(employee)}</h3>
+        <p className="truncate text-xs text-navy-500">{employee.department?.name || 'No Department'}</p>
+        <div className="mt-1.5">
+          <RoleBadge role={employee.role || 'employee'} />
+        </div>
+      </div>
+    </div>
+
+    <dl className="mt-4 space-y-1.5 border-t border-navy-100 pt-3 text-xs text-navy-500">
+      <div className="flex items-center gap-2">
+        <Phone className="h-3.5 w-3.5 flex-shrink-0" />
+        <dt className="sr-only">Extension</dt>
+        <dd>
+          Ext: <span className="text-navy-800">{employee.extension || '—'}</span>
+        </dd>
+      </div>
+      <div className="flex items-center gap-2">
+        <Mail className="h-3.5 w-3.5 flex-shrink-0" />
+        <dt className="sr-only">Email</dt>
+        <dd className="truncate">{employee.email || '—'}</dd>
+      </div>
+    </dl>
+
+    <div className="mt-3 flex items-center justify-end gap-1 border-t border-navy-100 pt-2">
+      <button type="button" onClick={onView} className="icon-btn" title="View details" aria-label="View details">
+        <Eye className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        onClick={onEdit}
+        disabled={!canEdit}
+        className="icon-btn"
+        title={canEdit ? 'Edit employee' : 'Only administrators can edit admin accounts'}
+        aria-label="Edit employee"
+      >
+        <Pencil className="h-4 w-4" />
+      </button>
+      {canDelete && (
+        <button type="button" onClick={onDelete} className="icon-btn hover:bg-rose-50 hover:text-rose-600" title="Delete employee" aria-label="Delete employee">
+          <Trash2 className="h-4 w-4" />
+        </button>
+      )}
+    </div>
+  </article>
+)
 
 const EmployeesPage = () => {
   const dispatch = useDispatch()
   const { showSuccess, showError } = useNotifications()
+  const { exportAs, exporting } = useEmployeeExport()
   const { user } = useSelector((state) => state.auth || {})
   const employees = useSelector((state) => state.employees.employees || [])
   const departments = useSelector((state) => state.departments.departments || [])
@@ -22,80 +148,72 @@ const EmployeesPage = () => {
   const sortOrder = useSelector((state) => state.employees.sortOrder || 'asc')
   const loading = useSelector((state) => state.employees.loading)
   const error = useSelector((state) => state.employees.error)
-  
+
+  const isAdmin = user?.role === 'admin'
   const [showModal, setShowModal] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState(null)
   const [selectedEmployees, setSelectedEmployees] = useState([])
-  const [showEmployeeDetails, setShowEmployeeDetails] = useState(false)
-  const [selectedEmployee, setSelectedEmployee] = useState(null)
-  const [exportLoading, setExportLoading] = useState(false)
+  const [detailsEmployee, setDetailsEmployee] = useState(null)
+  const [showFilters, setShowFilters] = useState(false)
 
   useEffect(() => {
+    document.title = 'Employees · Qassim Chamber'
     dispatch(fetchEmployees())
     dispatch(fetchDepartments())
   }, [dispatch])
 
-  // Filter and sort employees
-  const filteredEmployees = employees
-    .filter(employee => {
-      const matchesSearch = 
-        employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        employee.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        employee.extension?.toString().includes(searchTerm) ||
-        employee.department?.name.toLowerCase().includes(searchTerm.toLowerCase())
-      
-      const matchesDepartment = !filterDepartment || employee.department?._id === filterDepartment
-      
-      return matchesSearch && matchesDepartment
-    })
-    .sort((a, b) => {
-      let aValue, bValue
-      
-      switch (sortBy) {
-        case 'name':
-          aValue = a.name.toLowerCase()
-          bValue = b.name.toLowerCase()
-          break
-        case 'extension':
-          aValue = parseInt(a.extension) || 0
-          bValue = parseInt(b.extension) || 0
-          break
-        case 'department':
-          aValue = a.department?.name || ''
-          bValue = b.department?.name || ''
-          break
-        case 'email':
-          aValue = a.email || ''
-          bValue = b.email || ''
-          break
-        case 'createdAt':
-          aValue = new Date(a.createdAt || a.updatedAt)
-          bValue = new Date(b.createdAt || b.updatedAt)
-          break
-        default:
-          aValue = a.name.toLowerCase()
-          bValue = b.name.toLowerCase()
-      }
-      
-      if (sortOrder === 'asc') {
-        return aValue > bValue ? 1 : -1
-      } else {
-        return aValue < bValue ? 1 : -1
-      }
-    })
+  const filteredEmployees = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase()
+    return employees
+      .filter((employee) => {
+        const matchesSearch =
+          !q ||
+          getEmployeeName(employee).toLowerCase().includes(q) ||
+          employee.email?.toLowerCase().includes(q) ||
+          employee.extension?.toString().includes(q) ||
+          employee.position?.toLowerCase().includes(q) ||
+          employee.department?.name?.toLowerCase().includes(q)
+        const matchesDepartment = !filterDepartment || employee.department?._id === filterDepartment
+        return matchesSearch && matchesDepartment
+      })
+      .sort((a, b) => {
+        const av = sortValue(a, sortBy)
+        const bv = sortValue(b, sortBy)
+        if (av === bv) return 0
+        return (av > bv ? 1 : -1) * (sortOrder === 'asc' ? 1 : -1)
+      })
+  }, [employees, searchTerm, filterDepartment, sortBy, sortOrder])
 
-  const handleEmployeeSuccess = () => {
-    // Refresh employees list after successful creation/update
-    dispatch(fetchEmployees())
-  }
+  const stats = useMemo(() => {
+    const headcount = monthlySeries(6, (cutoff) => countBefore(employees, getJoinDate, cutoff))
+    const deptCount = monthlySeries(6, (cutoff) => countBefore(departments, getCreatedDate, cutoff))
+    const hires = monthlySeries(6, (cutoff) => {
+      const monthStart = startOfMonth(new Date(cutoff.getTime() - 1))
+      return countBefore(employees, getJoinDate, cutoff) - countBefore(employees, getJoinDate, monthStart)
+    })
+    const active = employees.filter((e) => getStatusKey(e) === 'active').length
+    return [
+      { label: 'Total Employees', value: employees.length, icon: Users, tone: 'indigo', series: headcount, change: seriesChange(headcount), subtitle: `${active} active` },
+      { label: 'Departments', value: departments.length, icon: Building2, tone: 'sky', series: deptCount, change: seriesChange(deptCount), subtitle: 'Active departments' },
+      {
+        label: 'Active Rate',
+        value: `${employees.length ? Math.round((active / employees.length) * 100) : 0}%`,
+        icon: UserCheck,
+        tone: 'emerald',
+        subtitle: `${active} of ${employees.length} active`,
+      },
+      { label: 'New This Month', value: hires[hires.length - 1], icon: UserPlus, tone: 'amber', series: hires, change: seriesChange(hires), subtitle: 'Joined this month' },
+    ]
+  }, [employees, departments])
+
+  const canEditEmployee = (employee) => !(employee?.role === 'admin' && !isAdmin)
 
   const handleEdit = (employee) => {
     // Prevent non-admin users from editing admin employees
-    if (employee.role === 'admin' && user?.role !== 'admin') {
+    if (!canEditEmployee(employee)) {
       showError('Only administrators can edit admin accounts')
       return
     }
-    
     setEditingEmployee(employee)
     setShowModal(true)
   }
@@ -105,6 +223,7 @@ const EmployeesPage = () => {
       const result = await dispatch(deleteEmployee(id))
       if (deleteEmployee.fulfilled.match(result)) {
         showSuccess('Employee deleted successfully!')
+        setSelectedEmployees((ids) => ids.filter((x) => x !== id))
       } else {
         showError('Failed to delete employee')
       }
@@ -116,505 +235,235 @@ const EmployeesPage = () => {
     setEditingEmployee(null)
   }
 
-  const handleExport = async (format) => {
-    try {
-      setExportLoading(true)
-      const resultAction = await dispatch(exportEmployees(format))
-      if (exportEmployees.fulfilled.match(resultAction)) {
-        const { data, format: fileFormat } = resultAction.payload
-        
-        const url = window.URL.createObjectURL(new Blob([data]))
-        const link = document.createElement('a')
-        link.href = url
-        link.setAttribute('download', `employees.${fileFormat}`)
-        document.body.appendChild(link)
-        link.click()
-        link.remove()
-        window.URL.revokeObjectURL(url)
-        showSuccess(`Employees exported to ${fileFormat.toUpperCase()} successfully!`)
-      } else {
-        showError('Failed to export employees')
-      }
-    } catch (error) {
-      console.error('Export failed:', error)
-      showError('Export failed. Please try again.')
-    } finally {
-      setExportLoading(false)
-    }
-  }
+  const toggleSelected = (id) =>
+    setSelectedEmployees((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]))
 
-  const handleViewEmployee = (employee) => {
-    setSelectedEmployee(employee)
-    setShowEmployeeDetails(true)
-  }
+  const quickActions = [
+    isAdmin && { name: 'Add Employee', icon: UserPlus, onClick: () => setShowModal(true) },
+    { name: exporting === 'excel' ? 'Exporting…' : 'Export Excel', icon: FileSpreadsheet, onClick: () => exportAs('excel'), disabled: !!exporting },
+    { name: exporting === 'csv' ? 'Exporting…' : 'Export CSV', icon: Download, onClick: () => exportAs('csv'), disabled: !!exporting },
+  ].filter(Boolean)
 
-  const headerActions = [
-    <ActionButton
-      key="export-csv"
-      type="secondary"
-      iconType="export-csv"
-      onClick={() => handleExport('csv')}
-      disabled={exportLoading}
-    >
-      {exportLoading ? 'Exporting...' : 'Export CSV'}
-    </ActionButton>,
-    <ActionButton
-      key="export-excel"
-      type="success"
-      iconType="export-excel"
-      onClick={() => handleExport('excel')}
-      disabled={exportLoading}
-    >
-      {exportLoading ? 'Exporting...' : 'Export Excel'}
-    </ActionButton>
-  ]
-
-  if (user?.role === 'admin') {
-    headerActions.push(
-      <ActionButton
-        key="add-employee"
-        type="primary"
-        iconType="add"
-        onClick={() => setShowModal(true)}
-      >
-        Add Employee
-      </ActionButton>
-    )
-  }
-
-  const headerSubtitle = (
-                <div className="flex items-center mt-1 space-x-2">
-                  <span className="text-xs text-white/80">
-                    Role: <span className="font-medium capitalize">{user?.role}</span>
-                  </span>
-                  {user?.role === 'manager' && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                      View & Update Only
-                    </span>
-                  )}
-                </div>
-  )
+  const activeFilterCount = filterDepartment ? 1 : 0
+  const selectedDepartmentName = departments.find((d) => d._id === filterDepartment)?.name
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100">
-      <PageHeader
-        title="Manage Employees"
-        subtitle={headerSubtitle}
-        backUrl="/admin"
-        actions={headerActions}
+    <div>
+      <PageHero
+        eyebrow="Qassim Chamber"
+        title="Manage Your Team"
+        description="Track, organize and manage your employees efficiently with a simple and powerful system."
+        tagline="Unlocking opportunities for a stronger economy"
+        actions={
+          user?.role === 'manager' && (
+            <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">View &amp; Update Only</span>
+          )
+        }
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Advanced Search */}
-        <AdvancedSearch
-          searchTerm={searchTerm}
-          onSearchChange={(value) => dispatch(setSearchTerm(value))}
-          filterDepartment={filterDepartment}
-          onFilterChange={(value) => dispatch(setFilterDepartment(value))}
-          sortBy={sortBy}
-          onSortChange={(value) => dispatch(setSortBy(value))}
-          sortOrder={sortOrder}
-          onSortOrderChange={(value) => dispatch(setSortOrder(value))}
-          departments={departments}
-        />
+      <main className="space-y-6 px-4 py-6 sm:px-6 xl:px-8">
+        {/* Search + quick actions */}
+        <div className="grid grid-cols-1 items-center gap-5 xl:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="surface p-2">
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-navy-500" />
+                <input
+                  type="search"
+                  value={searchTerm}
+                  onChange={(e) => dispatch(setSearchTerm(e.target.value))}
+                  placeholder="Search by name, extension, email, or department..."
+                  aria-label="Search employees"
+                  className="w-full rounded-xl border-0 bg-transparent py-2.5 pl-10 pr-3 text-sm text-navy-800 placeholder:text-navy-500/80 focus:outline-none focus:ring-0"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowFilters((v) => !v)}
+                aria-expanded={showFilters}
+                className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ${
+                  showFilters ? 'bg-navy-900 text-white' : 'bg-navy-50 text-navy-800 hover:bg-navy-100'
+                }`}
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                Filters
+                {activeFilterCount > 0 && (
+                  <span className={`rounded-full px-1.5 text-[10px] font-semibold ${showFilters ? 'bg-white text-navy-900' : 'bg-indigo-600 text-white'}`}>
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+            </div>
 
-        {/* Bulk Operations */}
-        <BulkOperations
-          selectedEmployees={selectedEmployees}
-          onSelectionChange={setSelectedEmployees}
-          employees={filteredEmployees}
-          departments={departments}
-          onRefresh={() => dispatch(fetchEmployees())}
-        />
-
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
-            <div className="text-sm text-red-600">{error}</div>
+            {showFilters && (
+              <div className="mt-2 grid grid-cols-1 gap-3 border-t border-navy-100 p-3 sm:grid-cols-[repeat(2,minmax(0,1fr))_auto]">
+                <label className="text-xs font-medium text-navy-500">
+                  Department
+                  <select
+                    value={filterDepartment}
+                    onChange={(e) => dispatch(setFilterDepartment(e.target.value))}
+                    className="field mt-1"
+                  >
+                    <option value="">All Departments</option>
+                    {departments.map((d) => (
+                      <option key={d._id} value={d._id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="text-xs font-medium text-navy-500">
+                  Sort by
+                  <select
+                    value={`${sortBy}:${sortOrder}`}
+                    onChange={(e) => {
+                      const [by, order] = e.target.value.split(':')
+                      dispatch(setSortBy(by))
+                      dispatch(setSortOrder(order))
+                    }}
+                    className="field mt-1"
+                  >
+                    {SORT_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    dispatch(setFilterDepartment(''))
+                    dispatch(setSortBy('name'))
+                    dispatch(setSortOrder('asc'))
+                  }}
+                  className="btn-soft self-end"
+                >
+                  Reset
+                </button>
+              </div>
+            )}
           </div>
+
+          <QuickActionList variant="inline" actions={quickActions} />
+        </div>
+
+        {/* KPIs */}
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-[repeat(4,minmax(0,1fr))_minmax(0,0.85fr)]">
+          {stats.map((s) => (
+            <StatCard key={s.label} {...s} />
+          ))}
+          <div className="relative hidden overflow-hidden rounded-2xl border border-navy-100 bg-gradient-to-br from-white to-indigo-50 p-5 2xl:block">
+            <StarBurst className="pointer-events-none absolute -bottom-14 -right-14 h-44 w-44 text-indigo-300/60" />
+            <p className="relative max-w-[10rem] font-serif text-[17px] leading-snug text-navy-800">Building a thriving business community</p>
+            <span className="relative mt-4 block h-px w-8 bg-navy-800/40" />
+          </div>
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
         )}
 
-        {/* Employees List */}
-        <div className="glass-card">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">
+        {/* Employees */}
+        <section className="surface">
+          <header className="flex flex-wrap items-center justify-between gap-3 px-6 pb-2 pt-5">
+            <h2 className="flex items-center gap-2.5 font-serif text-xl text-navy-800">
+              <Users className="h-5 w-5 text-navy-500" strokeWidth={1.7} />
               Employees ({filteredEmployees.length})
             </h2>
-          </div>
-
-          {loading ? (
-            <QassimLoadingSpinner size="lg" text="Loading employees..." className="py-12" />
-          ) : filteredEmployees.length === 0 ? (
-            <EmptyState
-              type="employees"
-              title="No employees found"
-              description="Get started by adding a new employee."
-              actions={user?.role === 'admin' ? [
-                <ActionButton
-                  key="add-first-employee"
-                  type="primary"
-                  iconType="add"
-                  onClick={() => setShowModal(true)}
+            <div className="flex flex-wrap items-center gap-2">
+              {selectedDepartmentName && (
+                <button
+                  type="button"
+                  onClick={() => dispatch(setFilterDepartment(''))}
+                  className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
                 >
-                  Add First Employee
-                </ActionButton>
-              ] : []}
-            />
+                  {selectedDepartmentName}
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+              <label className="relative">
+                <span className="sr-only">Sort employees</span>
+                <select
+                  value={`${sortBy}:${sortOrder}`}
+                  onChange={(e) => {
+                    const [by, order] = e.target.value.split(':')
+                    dispatch(setSortBy(by))
+                    dispatch(setSortOrder(order))
+                  }}
+                  className="cursor-pointer appearance-none rounded-lg bg-transparent py-1.5 pl-3 pr-8 text-xs text-navy-800 hover:bg-navy-50 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                >
+                  {SORT_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-navy-500" />
+              </label>
+            </div>
+          </header>
+
+          <BulkOperations
+            selectedEmployees={selectedEmployees}
+            onSelectionChange={setSelectedEmployees}
+            employees={filteredEmployees}
+            departments={departments}
+            onRefresh={() => dispatch(fetchEmployees())}
+          />
+
+          {loading && employees.length === 0 ? (
+            <QassimLoadingSpinner size="lg" text="Loading employees..." className="py-16" />
+          ) : filteredEmployees.length === 0 ? (
+            <div className="flex flex-col items-center px-6 py-16 text-center">
+              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-navy-50 text-navy-500">
+                <Users className="h-6 w-6" />
+              </span>
+              <h3 className="mt-4 text-sm font-semibold text-navy-800">No employees found</h3>
+              <p className="mt-1 text-sm text-navy-500">
+                {searchTerm || filterDepartment ? 'Try a different search or clear the filters.' : 'Get started by adding a new employee.'}
+              </p>
+              {isAdmin && !searchTerm && !filterDepartment && (
+                <button type="button" onClick={() => setShowModal(true)} className="btn-navy mt-5">
+                  <UserPlus className="h-4 w-4" /> Add First Employee
+                </button>
+              )}
+            </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-6">
+            <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
               {filteredEmployees.map((employee) => (
-                <div key={employee._id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200">
-                  <div className="p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedEmployees.includes(employee._id)}
-                        onChange={() => {
-                          if (selectedEmployees.includes(employee._id)) {
-                            setSelectedEmployees(selectedEmployees.filter(id => id !== employee._id))
-                          } else {
-                            setSelectedEmployees([...selectedEmployees, employee._id])
-                          }
-                        }}
-                        className="rounded border-gray-300 text-qassim-blue focus:ring-qassim-blue"
-                      />
-                      <div className="flex space-x-1">
-                        <button
-                          onClick={() => handleViewEmployee(employee)}
-                          className="text-blue-600 hover:text-blue-800 p-1"
-                          title="View Details"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleEdit(employee)}
-                          disabled={employee.role === 'admin' && user?.role !== 'admin'}
-                          className={`p-1 ${employee.role === 'admin' && user?.role !== 'admin' 
-                            ? 'text-gray-400 cursor-not-allowed' 
-                            : 'text-qassim-blue hover:text-qassim-blue-dark'}`}
-                          title={employee.role === 'admin' && user?.role !== 'admin' 
-                            ? 'Only administrators can edit admin accounts' 
-                            : 'Edit Employee'}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        {user?.role === 'admin' && (
-                          <button
-                            onClick={() => handleDelete(employee._id)}
-                            className="text-red-600 hover:text-red-900 p-1"
-                            title="Delete Employee (Admin Only)"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center mb-3">
-                      <div className="flex-shrink-0 mr-3">
-                        <AvatarUpload
-                          currentAvatar={employee.avatar}
-                          onAvatarChange={() => {}}
-                          size="medium"
-                          editable={false}
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-medium text-gray-900 truncate">
-                          {employee.name}
-                        </h3>
-                        <p className="text-xs text-gray-500 truncate">
-                          {employee.department?.name || 'No Department'}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2 text-xs text-gray-600">
-                      {employee.role && (
-                        <div className="flex items-center">
-                          <span className="font-medium mr-2">Role:</span>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            employee.role === 'admin' ? 'bg-red-100 text-red-800' :
-                            employee.role === 'manager' ? 'bg-blue-100 text-blue-800' :
-                            employee.role === 'hr' ? 'bg-green-100 text-green-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {employee.role.charAt(0).toUpperCase() + employee.role.slice(1)}
-                          </span>
-                        </div>
-                      )}
-                      {employee.extension && (
-                        <div className="flex items-center">
-                          <span className="font-medium mr-2">Ext:</span>
-                          <span>{employee.extension}</span>
-                        </div>
-                      )}
-                      {employee.email && (
-                        <div className="flex items-center">
-                          <span className="font-medium mr-2">Email:</span>
-                          <span className="truncate">{employee.email}</span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="mt-3 pt-3 border-t border-gray-100">
-                      <QRCodeGenerator employee={employee} type="employee_card" />
-                    </div>
-                  </div>
-                </div>
+                <EmployeeCard
+                  key={employee._id}
+                  employee={employee}
+                  selected={selectedEmployees.includes(employee._id)}
+                  onToggle={() => toggleSelected(employee._id)}
+                  onView={() => setDetailsEmployee(employee)}
+                  onEdit={() => handleEdit(employee)}
+                  onDelete={() => handleDelete(employee._id)}
+                  canEdit={canEditEmployee(employee)}
+                  canDelete={isAdmin}
+                />
               ))}
             </div>
           )}
-        </div>
-      </div>
+        </section>
+      </main>
 
-      {/* Employee Details Modal */}
-      {showEmployeeDetails && selectedEmployee && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 w-full max-w-4xl shadow-2xl rounded-2xl glass-card">
-            <div className="mt-3">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-bold text-gray-900">
-                  Employee Details
-                </h3>
-                <button
-                  onClick={() => {
-                    setShowEmployeeDetails(false)
-                    setSelectedEmployee(null)
-                  }}
-                  className="text-gray-400 hover:text-gray-600 text-2xl"
-                >
-                  ×
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Employee Info */}
-                <div className="lg:col-span-1">
-                  <div className="bg-white rounded-lg shadow-sm p-6">
-                    <div className="text-center mb-6">
-                      <div className="flex justify-center mb-4">
-                        <AvatarUpload
-                          currentAvatar={selectedEmployee.avatar}
-                          onAvatarChange={() => {}}
-                          size="xlarge"
-                          editable={false}
-                        />
-                      </div>
-                      <h4 className="text-xl font-semibold text-gray-900">
-                        {selectedEmployee.name}
-                      </h4>
-                      <p className="text-gray-600 mb-2">
-                        {selectedEmployee.department?.name || 'No Department'}
-                      </p>
-                      {selectedEmployee.role && (
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                          selectedEmployee.role === 'admin' ? 'bg-red-100 text-red-800' :
-                          selectedEmployee.role === 'manager' ? 'bg-blue-100 text-blue-800' :
-                          selectedEmployee.role === 'hr' ? 'bg-green-100 text-green-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {selectedEmployee.role.charAt(0).toUpperCase() + selectedEmployee.role.slice(1)}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                          <span className="text-blue-600 font-medium">
-                            {selectedEmployee.extension || 'N/A'}
-                          </span>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">Extension</p>
-                          <p className="text-sm text-gray-500">
-                            {selectedEmployee.extension || 'Not assigned'}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
-                          <span className="text-green-600 font-medium">@</span>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">Email</p>
-                          <p className="text-sm text-gray-500">
-                            {selectedEmployee.email || 'Not provided'}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-3">
-                          <span className="text-purple-600 font-medium">
-                            {selectedEmployee.isActive !== false ? '✓' : '✗'}
-                          </span>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">Status</p>
-                          <p className="text-sm text-gray-500">
-                            {selectedEmployee.isActive !== false ? 'Active' : 'Inactive'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-6 pt-6 border-t border-gray-200">
-                      <QRCodeGenerator employee={selectedEmployee} type="employee_card" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Actions & History */}
-                <div className="lg:col-span-2">
-                  <div className="space-y-6">
-                    {/* Quick Actions */}
-                    <div className="bg-white rounded-lg shadow-sm p-6">
-                      <h5 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h5>
-                      <div className="grid grid-cols-2 gap-3">
-                        <button
-                          onClick={() => {
-                            setShowEmployeeDetails(false)
-                            setSelectedEmployee(null)
-                            handleEdit(selectedEmployee)
-                          }}
-                          disabled={selectedEmployee?.role === 'admin' && user?.role !== 'admin'}
-                          className={`flex items-center justify-center px-4 py-3 rounded-lg transition-colors ${
-                            selectedEmployee?.role === 'admin' && user?.role !== 'admin'
-                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                              : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-                          }`}
-                        >
-                          <Edit className="h-5 w-5 mr-2" />
-                          {selectedEmployee?.role === 'admin' && user?.role !== 'admin' 
-                            ? 'Edit Restricted' 
-                            : 'Edit Employee'}
-                        </button>
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText(selectedEmployee.email || '')
-                            showSuccess('Email copied to clipboard!')
-                          }}
-                          className="flex items-center justify-center px-4 py-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors"
-                        >
-                          <Download className="h-5 w-5 mr-2" />
-                          Copy Email
-                        </button>
-                        {selectedEmployee.extension && (
-                          <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(selectedEmployee.extension)
-                              showSuccess('Extension copied to clipboard!')
-                            }}
-                            className="flex items-center justify-center px-4 py-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors"
-                          >
-                            <Download className="h-5 w-5 mr-2" />
-                            Copy Extension
-                          </button>
-                        )}
-                        <button
-                          onClick={() => {
-                            const contactInfo = `Name: ${selectedEmployee.name}\nExtension: ${selectedEmployee.extension || 'N/A'}\nEmail: ${selectedEmployee.email || 'N/A'}\nDepartment: ${selectedEmployee.department?.name || 'N/A'}`
-                            navigator.clipboard.writeText(contactInfo)
-                            showSuccess('Contact info copied to clipboard!')
-                          }}
-                          className="flex items-center justify-center px-4 py-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
-                        >
-                          <Download className="h-5 w-5 mr-2" />
-                          Copy Contact
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Employee Information */}
-                    <div className="bg-white rounded-lg shadow-sm p-6">
-                      <h5 className="text-lg font-semibold text-gray-900 mb-4">Detailed Information</h5>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                          <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
-                            {selectedEmployee.name}
-                          </p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Position</label>
-                          <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
-                            {selectedEmployee.position || 'Not specified'}
-                          </p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-                          <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
-                            {selectedEmployee.role ? selectedEmployee.role.charAt(0).toUpperCase() + selectedEmployee.role.slice(1) : 'Not specified'}
-                          </p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-                          <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
-                            {selectedEmployee.department?.name || 'No Department'}
-                          </p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                          <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
-                            {selectedEmployee.phone || 'Not provided'}
-                          </p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Created Date</label>
-                          <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
-                            {selectedEmployee.createdAt ? new Date(selectedEmployee.createdAt).toLocaleDateString() : 'Unknown'}
-                          </p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Last Updated</label>
-                          <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
-                            {selectedEmployee.updatedAt ? new Date(selectedEmployee.updatedAt).toLocaleDateString() : 'Unknown'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Recent Activity Placeholder */}
-                    <div className="bg-white rounded-lg shadow-sm p-6">
-                      <h5 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h5>
-                      <div className="space-y-3">
-                        <div className="flex items-center p-3 bg-gray-50 rounded-lg">
-                          <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-900">Employee profile updated</p>
-                            <p className="text-xs text-gray-500">
-                              {selectedEmployee.updatedAt ? new Date(selectedEmployee.updatedAt).toLocaleDateString() : 'Unknown date'}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center p-3 bg-gray-50 rounded-lg">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-900">Employee created</p>
-                            <p className="text-xs text-gray-500">
-                              {selectedEmployee.createdAt ? new Date(selectedEmployee.createdAt).toLocaleDateString() : 'Unknown date'}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      {detailsEmployee && (
+        <EmployeeDetailsModal
+          employee={detailsEmployee}
+          canEdit={canEditEmployee(detailsEmployee)}
+          onClose={() => setDetailsEmployee(null)}
+          onEdit={() => {
+            const employee = detailsEmployee
+            setDetailsEmployee(null)
+            handleEdit(employee)
+          }}
+        />
       )}
 
-      <EmployeeForm
-        isOpen={showModal}
-        onClose={handleCloseModal}
-        editingEmployee={editingEmployee}
-        onSuccess={handleEmployeeSuccess}
-      />
+      <EmployeeForm isOpen={showModal} onClose={handleCloseModal} editingEmployee={editingEmployee} onSuccess={() => dispatch(fetchEmployees())} />
     </div>
   )
 }

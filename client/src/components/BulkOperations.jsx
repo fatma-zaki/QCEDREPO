@@ -182,22 +182,22 @@ const BulkOperations = ({
   if (employees.length === 0) return null
 
   return (
-    <div className="bg-white border-b border-gray-200 px-6 py-4">
+    <div className="border-b border-navy-100 px-6 py-3">
       <div className="flex items-center justify-between">
         {/* Selection Controls */}
         <div className="flex items-center space-x-4">
           <button
             onClick={handleSelectAll}
-            className="flex items-center text-gray-600 hover:text-gray-900"
+            className="flex items-center text-navy-500 hover:text-navy-800"
           >
             {isAllSelected ? (
-              <CheckSquare className="w-5 h-5 text-qassim-blue" />
+              <CheckSquare className="w-5 h-5 text-indigo-600" />
             ) : isIndeterminate ? (
-              <div className="w-5 h-5 border-2 border-qassim-blue bg-qassim-blue/20 rounded" />
+              <div className="w-5 h-5 border-2 border-indigo-600 bg-indigo-100 rounded" />
             ) : (
               <Square className="w-5 h-5" />
             )}
-            <span className="ml-2 text-sm font-medium">
+            <span className="ml-2 text-[13px] font-medium">
               {selectedEmployees.length} of {employees.length} selected
             </span>
           </button>
@@ -205,23 +205,23 @@ const BulkOperations = ({
           {selectedEmployees.length > 0 && (
             <button
               onClick={() => setShowBulkMenu(!showBulkMenu)}
-              className="flex items-center px-3 py-2 bg-qassim-blue text-white rounded-lg hover:bg-qassim-blue-dark text-sm"
+              className="btn-navy py-1.5 text-[13px]"
             >
-              <Edit className="w-4 h-4 mr-2" />
+              <Edit className="w-4 h-4" />
               Bulk Actions
             </button>
           )}
         </div>
 
         {/* Employee Count */}
-        <div className="text-sm text-gray-500">
+        <div className="text-[13px] text-navy-500">
           Total: {employees.length} employees
         </div>
       </div>
 
       {/* Bulk Actions Menu */}
       {showBulkMenu && selectedEmployees.length > 0 && (
-        <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
+        <div className="mt-4 rounded-xl border border-navy-100 bg-navy-50/60 p-4">
           <div className="flex items-center mb-4">
             <AlertTriangle className="w-5 h-5 text-yellow-500 mr-2" />
             <span className="text-sm font-medium text-gray-700">
@@ -317,7 +317,7 @@ const BulkOperations = ({
               className={`px-4 py-2 rounded-lg text-white ${
                 bulkAction === 'delete' 
                   ? 'bg-red-600 hover:bg-red-700' 
-                  : 'bg-qassim-blue hover:bg-qassim-blue-dark'
+                  : 'bg-navy-900 hover:bg-navy-700'
               } disabled:opacity-50`}
             >
               {loading ? 'Processing...' : `Execute ${bulkAction}`}

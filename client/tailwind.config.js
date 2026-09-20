@@ -20,6 +20,17 @@ export default {
           800: '#3730a3',
           900: '#312e81',
         },
+        navy: {
+          50: '#f4f6fb',
+          100: '#e8ebf5',
+          200: '#d5dbee',
+          400: '#8ea2e0',
+          500: '#6b7394',
+          700: '#243a80',
+          800: '#16204a',
+          900: '#0e1b4d',
+          950: '#0a1540',
+        },
         qassim: {
           blue: '#002944',      // Dark blue from logo
           gold: '#fbbf24',      // Golden yellow from logo
@@ -45,6 +56,7 @@ export default {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         display: ['Inter', 'system-ui', 'sans-serif'],
+        serif: ['"Source Serif 4"', 'Georgia', 'Cambria', 'serif'],
         arabic: ['Amiri', 'Noto Sans Arabic', 'Arial', 'sans-serif'],
         latin: ['Inter', 'Arial', 'sans-serif'],
       },
@@ -79,6 +91,7 @@ export default {
         'float': 'float 2s ease-in-out infinite',
         'spin-reverse': 'spin 1.5s linear infinite reverse',
         'scratch': 'scratch 1s ease-in-out forwards',
+        'loading-bar': 'loadingBar 1.8s cubic-bezier(0.65, 0, 0.35, 1) infinite',
       },
       keyframes: {
         fadeIn: {
@@ -118,6 +131,10 @@ export default {
         float: {
           '0%, 100%': { transform: 'translateY(0px) scale(1)', opacity: '0.7' },
           '50%': { transform: 'translateY(-10px) scale(1.2)', opacity: '1' },
+        },
+        loadingBar: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(340%)' },
         },
         scratch: { // Added scratch keyframes
           '0%': { transform: 'translateX(-100%)', opacity: '0' },

@@ -70,12 +70,18 @@ const SchedulePage = () => {
     }
   }, [dispatch, user]);
 
+  // Department.head may be an id string or a populated employee object
+  const idOf = (v) => String(v && typeof v === 'object' ? v._id : v ?? '');
+  const userId = idOf(user?._id || user?.id);
+  const isHeadOf = (dept) => !!dept?.head && idOf(dept.head) === userId;
+  const seesAllDepartments = user?.role === 'admin' || user?.role === 'hr';
+
   // Get departments that the current user can manage
   const getManageableDepartments = () => {
-    if (user?.role === 'admin') {
+    if (seesAllDepartments) {
       return departments;
     } else if (user?.role === 'manager') {
-      return departments.filter(dept => dept.manager === user._id);
+      return departments.filter(isHeadOf);
     }
     return [];
   };
@@ -97,8 +103,8 @@ const SchedulePage = () => {
           userDepartment: user?.department 
         });
         
-        if (user?.role === 'admin' && departments.length > 0) {
-          console.log('Setting admin department:', departments[0]._id);
+        if (seesAllDepartments && departments.length > 0) {
+          console.log('Setting admin/hr department:', departments[0]._id);
           setSelectedDepartment(departments[0]._id);
         } else if (user?.role === 'manager' && manageableDepartments.length > 0) {
           console.log('Setting manager department:', manageableDepartments[0]._id);
@@ -156,6 +162,7 @@ const SchedulePage = () => {
       });
       console.log('Schedule response:', res.data);
       setSchedule(res.data.data);
+      setStatus((s) => (s.err ? { ...s, err: null } : s));
       
       // Fetch schedule history if schedule exists
       if (res.data.data && res.data.data._id) {
@@ -291,13 +298,14 @@ const SchedulePage = () => {
   };
 
   // Enhanced role-based permissions
-  const canEdit = user?.role === 'admin' || 
-    (user?.role === 'manager' && departments.find(d => d._id === selectedDepartment)?.manager === user._id);
-  
-  const canView = user?.role === 'admin' || 
-    user?.role === 'manager' || 
+  // Server only allows admin and manager to create/publish schedules
+  const canEdit = user?.role === 'admin' ||
+    (user?.role === 'manager' && isHeadOf(departments.find(d => d._id === selectedDepartment)));
+
+  const canView = seesAllDepartments ||
+    user?.role === 'manager' ||
     user?.role === 'employee';
-  
+
   const isReadOnly = user?.role === 'employee';
 
   const currentSchedule = editing ? tempSchedule : schedule;
@@ -336,26 +344,6 @@ const SchedulePage = () => {
           <p className="mt-1 text-sm text-gray-500">
             Please create departments before managing schedules.
           </p>
-        </div>
-      </div>
-    );
-  }
-
-  // Error fallback
-  if (status.err) {
-    return (
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="text-center py-12">
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded p-4">
-            <h3 className="font-medium">Error Loading Schedule</h3>
-            <p className="mt-1">{status.err}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-3 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-            >
-              Reload Page
-            </button>
-          </div>
         </div>
       </div>
     );
@@ -453,7 +441,7 @@ const SchedulePage = () => {
             >
               {departmentsLoading ? (
                 <option>Loading departments...</option>
-              ) : user?.role === 'admin' ? (
+              ) : seesAllDepartments ? (
                 departments.length > 0 ? (
                   departments.map(dept => (
                     <option key={dept._id} value={dept._id}>{dept.name}</option>
@@ -614,7 +602,7 @@ const SchedulePage = () => {
                     </td>
                     {Array.from({ length: 7 }, (_, dayIndex) => {
                       const day = getDayName(dayIndex);
-                      const shiftData = shift[day];
+                      const shiftData = shift[day] || { isWorking: false };
                       
                       return (
                         <td key={dayIndex} className="px-6 py-4 text-center">

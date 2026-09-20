@@ -121,3 +121,5 @@ Thumbs.db
 
 # Exports
 exports/
+# Local dependency backups
+node_modules.bak/

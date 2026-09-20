@@ -7,11 +7,12 @@ import { fetchEmployees } from './store/slices/employeeSlice'
 
 // Core components (loaded immediately)
 import PrivateRoute from './components/PrivateRoute'
-import { QassimLoadingSpinner } from './components'
+import AppLoadingScreen from './components/ui/AppLoadingScreen'
 import ErrorBoundary from './components/ErrorBoundary'
 import PWAInstallPrompt from './components/PWAInstallPrompt'
 import OfflineIndicator from './components/OfflineIndicator'
 import NotificationProvider from './components/NotificationSystem'
+import AppShell from './components/layout/AppShell'
 
 // Lazy loaded components for better performance
 const LoginPage = lazy(() => import('./pages/LoginPage'))
@@ -68,7 +69,7 @@ function App() {
   }, [dispatch, isAuthenticated, initialLoad])
 
   if (initialLoad || loading) {
-    return <QassimLoadingSpinner size="xl" text="Loading application..." />
+    return <AppLoadingScreen />
   }
 
   return (
@@ -76,10 +77,13 @@ function App() {
       <ErrorBoundary>
         <div className="min-h-screen bg-gray-50">
           <OfflineIndicator />
-          <Suspense fallback={<QassimLoadingSpinner size="xl" text="Loading application..." />}>
+          <Suspense fallback={<AppLoadingScreen />}>
             <Routes>
             {/* Public Routes */}
             <Route path="/login" element={<LoginPage />} />
+
+            {/* Signed-in pages share one persistent shell (sidebar stays mounted across navigation) */}
+            <Route element={<AppShell />}>
             <Route path="/chat" element={
               <PrivateRoute>
                 <ChatPage />
@@ -221,6 +225,8 @@ function App() {
               </PrivateRoute>
             } />
             
+            </Route>
+
             {/* Default redirect based on authentication */}
             <Route path="/" element={
               isAuthenticated ? (
