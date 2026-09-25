@@ -86,9 +86,9 @@ jspm_packages/
 .nuxt
 dist
 
-# Gatsby files
-.cache/
-public
+# Gatsby files (root-anchored: client/public holds real app assets)
+/.cache/
+/public
 
 # Storybook build outputs
 .out
@@ -123,3 +123,14 @@ Thumbs.db
 exports/
 # Local dependency backups
 node_modules.bak/
+
+# Unused local design mockups / spare art in client/public.
+# Not referenced by any code; kept out of the repo and off the public CDN.
+client/public/analytics&Reports-new-design.png
+client/public/dashboard-new-design.png
+client/public/departments-new-design.png
+client/public/employee-page-new-design.png
+client/public/background.png
+client/public/building.png
+client/public/login-bg-building.png
+client/public/qassim_chamber_employee-banner_building.png
