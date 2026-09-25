@@ -10,7 +10,7 @@ export default defineConfig({
     process.env.ANALYZE && analyzer(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      includeAssets: ['favicon.ico', 'favicon-16x16.png', 'favicon-32x32.png', 'apple-touch-icon.png'],
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
@@ -61,40 +61,22 @@ export default defineConfig({
         dir: 'ltr',
         icons: [
           {
-            src: 'logo.png',
+            src: 'pwa-192x192.png',
             sizes: '192x192',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'any'
           },
           {
-            src: 'logo.png',
+            src: 'pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'any'
           },
           {
-            src: 'logo.png',
-            sizes: '144x144',
-            type: 'image/png'
-          },
-          {
-            src: 'logo.png',
-            sizes: '72x72',
-            type: 'image/png'
-          }
-        ],
-        screenshots: [
-          {
-            src: 'screenshot-wide.png',
-            sizes: '1280x720',
+            src: 'pwa-maskable-512x512.png',
+            sizes: '512x512',
             type: 'image/png',
-            form_factor: 'wide'
-          },
-          {
-            src: 'screenshot-narrow.png',
-            sizes: '750x1334',
-            type: 'image/png',
-            form_factor: 'narrow'
+            purpose: 'maskable'
           }
         ]
       }
